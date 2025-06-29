@@ -283,8 +283,8 @@ pnpm prisma generate
 # Ejecuta las migraciones
 pnpm prisma db push
 
-# Opcional: Llena la base de datos con datos de ejemplo
-pnpm run db:seed
+# Opcional: Llena la base de datos con datos de ejemplo (ver prisma/README_SEED.md)
+# pnpm run db:seed
 ```
 
 5. **Inicia el servidor de desarrollo**
