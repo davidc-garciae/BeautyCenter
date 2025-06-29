@@ -57,6 +57,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
       href: "/admin/services",
       description: "Catálogo de servicios",
     },
+    {
+      title: "Categorías",
+      icon: Tag,
+      href: "/admin/categories",
+      description: "Ver categorías de servicios",
+    },
     ...(isAdmin
       ? [
           {
@@ -64,12 +70,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
             icon: UserCheck,
             href: "/admin/customers",
             description: "Gestionar clientes",
-          },
-          {
-            title: "Categorías",
-            icon: Tag,
-            href: "/admin/categories",
-            description: "Gestionar categorías",
           },
           {
             title: "Usuarios",

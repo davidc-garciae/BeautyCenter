@@ -18,8 +18,8 @@ export default async function handler(
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Verificar que el usuario tenga permisos (USER o ADMIN)
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'USER') {
+    // Verificar que el usuario tenga permisos (USER, STAFF o ADMIN)
+    if (!['ADMIN', 'USER', 'STAFF'].includes(session.user.role)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 

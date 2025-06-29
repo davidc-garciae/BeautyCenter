@@ -1,6 +1,8 @@
 # 💄 Centro de Belleza - Sistema de Agendamiento de Citas
 
-[🇪🇸 Español](#español) | [🌐 English](#english)
+[🇪🇸 Español](#espanol) | [🌐 English](#english)
+
+# Español
 
 <!-- =======================
      ESPAÑOL (por defecto)
@@ -484,7 +486,9 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para
 
 # 💄 Beauty Center - Appointment Scheduling System
 
-[🇪🇸 Español](#español) | [🌐 English](#english)
+[🇪🇸 Español](#espanol) | [🌐 English](#english)
+
+# English
 
 <!-- =======================
      ENGLISH VERSION

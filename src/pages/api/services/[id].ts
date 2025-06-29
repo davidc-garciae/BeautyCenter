@@ -7,7 +7,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== 'GET' && req.method !== 'POST') {
+  if (req.method !== 'PUT' && req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -18,49 +18,31 @@ export default async function handler(
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Verificar que el usuario tenga permisos (USER, STAFF o ADMIN)
-    if (!['ADMIN', 'USER', 'STAFF'].includes(session.user.role)) {
-      return res.status(403).json({ error: 'Forbidden' });
+    // Solo ADMIN puede modificar servicios
+    if (session.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Solo administradores pueden modificar servicios' });
     }
 
-    if (req.method === 'GET') {
-      // Verificar si es para administración (incluye parámetro 'admin=true') o para uso general
-      const { admin } = req.query;
-      const isAdminView = admin === 'true';
+    const { id } = req.query;
 
-      const services = await prisma.service.findMany({
-        where: isAdminView ? {} : { enabled: true }, // Admin ve todos, otros solo activos
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
-          creator: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: {
-          name: 'asc',
-        },
-      });
+    if (typeof id !== 'string') {
+      return res.status(400).json({ error: 'ID de servicio inválido' });
+    }
 
-      res.status(200).json(services);
-    } else if (req.method === 'POST') {
-      // Solo ADMIN puede crear servicios
-      if (session.user.role !== 'ADMIN') {
-        return res.status(403).json({ error: 'Solo administradores pueden crear servicios' });
-      }
+    // Verificar que el servicio existe
+    const existingService = await prisma.service.findUnique({
+      where: { id },
+    });
 
+    if (!existingService) {
+      return res.status(404).json({ error: 'Servicio no encontrado' });
+    }
+
+    if (req.method === 'PUT') {
       const { name, description, duration, price, categoryId, enabled } = req.body;
 
       // Validaciones básicas
-      if (!name || !duration || !price) {
+      if (!name || !duration || price === undefined) {
         return res.status(400).json({ 
           error: 'Campos requeridos: name, duration, price' 
         });
@@ -74,9 +56,9 @@ export default async function handler(
       }
 
       // Validar que el precio sea positivo
-      if (price <= 0) {
+      if (price < 0) {
         return res.status(400).json({ 
-          error: 'El precio debe ser mayor a 0' 
+          error: 'El precio debe ser mayor o igual a 0' 
         });
       }
 
@@ -91,14 +73,14 @@ export default async function handler(
         }
       }
 
-      const service = await prisma.service.create({
+      const updatedService = await prisma.service.update({
+        where: { id },
         data: {
           name,
           description: description || null,
           duration: parseInt(duration),
           price: parseFloat(price),
           categoryId: categoryId || null,
-          createdBy: session.user.id,
           enabled: enabled !== undefined ? enabled : true,
         },
         include: {
@@ -118,10 +100,24 @@ export default async function handler(
         },
       });
 
-      res.status(201).json(service);
+      res.status(200).json(updatedService);
+
+    } else if (req.method === 'DELETE') {
+      // En lugar de eliminar completamente, desactivamos el servicio
+      const deletedService = await prisma.service.update({
+        where: { id },
+        data: {
+          enabled: false,
+        },
+      });
+
+      res.status(200).json({ 
+        message: 'Servicio desactivado exitosamente',
+        service: deletedService 
+      });
     }
   } catch (error) {
-    console.error('Error fetching services:', error);
+    console.error('Error updating service:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 } 

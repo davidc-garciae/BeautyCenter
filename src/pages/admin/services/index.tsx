@@ -38,7 +38,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Scissors, Clock, DollarSign, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import {
+  Plus,
+  Scissors,
+  Clock,
+  DollarSign,
+  User,
+  Edit,
+  Power,
+} from "lucide-react";
 
 // Tipos para los datos
 interface Service {
@@ -50,6 +59,7 @@ interface Service {
   category?: {
     id: string;
     name: string;
+    color?: string;
   };
   creator: {
     id: string;
@@ -72,6 +82,7 @@ interface FormData {
   duration: string;
   price: string;
   categoryId: string;
+  enabled: boolean;
 }
 
 export default function ServicesPage() {
@@ -82,6 +93,8 @@ export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -94,7 +107,11 @@ export default function ServicesPage() {
     duration: "",
     price: "",
     categoryId: "",
+    enabled: true,
   });
+
+  // Verificar si el usuario es admin
+  const isAdmin = session?.user?.role === "ADMIN";
 
   // Manejar redirecciones
   useEffect(() => {
@@ -102,7 +119,7 @@ export default function ServicesPage() {
       router.push("/");
       return;
     }
-    if (session.user.role !== "ADMIN" && session.user.role !== "USER") {
+    if (!["ADMIN", "USER", "STAFF"].includes(session.user.role)) {
       router.push("/admin");
       return;
     }
@@ -110,10 +127,7 @@ export default function ServicesPage() {
 
   // Cargar datos iniciales
   useEffect(() => {
-    if (
-      session &&
-      (session.user.role === "ADMIN" || session.user.role === "USER")
-    ) {
+    if (session && ["ADMIN", "USER", "STAFF"].includes(session.user.role)) {
       loadServices();
       loadCategories();
     }
@@ -122,7 +136,8 @@ export default function ServicesPage() {
   // Funciones para cargar datos
   const loadServices = async () => {
     try {
-      const response = await fetch("/api/services");
+      // Para la vista de administración, cargar todos los servicios
+      const response = await fetch("/api/services?admin=true");
       if (response.ok) {
         const data = await response.json();
         setServices(data);
@@ -144,22 +159,65 @@ export default function ServicesPage() {
     }
   };
 
-  // Verificación de sesión y roles (solo renderizar si cumple condiciones)
-  if (
-    !session ||
-    (session.user.role !== "ADMIN" && session.user.role !== "USER")
-  ) {
+  // Verificación de sesión y roles
+  if (!session || !["ADMIN", "USER", "STAFF"].includes(session.user.role)) {
     return null;
   }
 
-  // Handler para crear servicio
-  const handleCreateService = async () => {
-    if (!formData.name || !formData.duration || !formData.price) return;
+  // Abrir diálogo para crear servicio
+  const handleCreateService = () => {
+    if (!isAdmin) return;
+    setIsEditMode(false);
+    setSelectedService(null);
+    setFormData({
+      name: "",
+      description: "",
+      duration: "",
+      price: "",
+      categoryId: "no-category",
+      enabled: true,
+    });
+    setIsDialogOpen(true);
+    setMessage(null);
+  };
+
+  // Abrir diálogo para editar servicio
+  const handleEditService = (service: Service) => {
+    if (!isAdmin) return;
+    setIsEditMode(true);
+    setSelectedService(service);
+    setFormData({
+      name: service.name,
+      description: service.description || "",
+      duration: service.duration.toString(),
+      price: service.price.toString(),
+      categoryId: service.category?.id || "no-category",
+      enabled: service.enabled,
+    });
+    setIsDialogOpen(true);
+    setMessage(null);
+  };
+
+  // Guardar servicio (crear o actualizar)
+  const handleSaveService = async () => {
+    if (!isAdmin) return;
+    if (!formData.name || !formData.duration || !formData.price) {
+      setMessage({
+        type: "error",
+        text: "Completa todos los campos obligatorios",
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/services", {
-        method: "POST",
+      const url = isEditMode
+        ? `/api/services/${selectedService?.id}`
+        : "/api/services";
+      const method = isEditMode ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -168,41 +226,81 @@ export default function ServicesPage() {
           description: formData.description || null,
           duration: parseInt(formData.duration),
           price: parseFloat(formData.price),
-          categoryId: formData.categoryId || null,
+          categoryId:
+            formData.categoryId === "no-category" ? null : formData.categoryId,
+          enabled: formData.enabled,
         }),
       });
 
       if (response.ok) {
-        const newService = await response.json();
-        setMessage({ type: "success", text: "Servicio creado exitosamente" });
-        setIsDialogOpen(false);
-
-        // Recargar los servicios
-        loadServices();
-
-        // Limpiar formulario
-        setFormData({
-          name: "",
-          description: "",
-          duration: "",
-          price: "",
-          categoryId: "",
+        setMessage({
+          type: "success",
+          text: isEditMode
+            ? "Servicio actualizado exitosamente"
+            : "Servicio creado exitosamente",
         });
-
+        setIsDialogOpen(false);
+        loadServices();
         setTimeout(() => setMessage(null), 3000);
       } else {
         const error = await response.json();
         setMessage({
           type: "error",
-          text: error.error || "Error al crear el servicio",
+          text: error.error || "Error al guardar el servicio",
         });
         setTimeout(() => setMessage(null), 3000);
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Error al crear el servicio" });
+      setMessage({ type: "error", text: "Error al guardar el servicio" });
       setTimeout(() => setMessage(null), 3000);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Toggle estado del servicio
+  const handleToggleService = async (service: Service) => {
+    if (!isAdmin) return;
+
+    try {
+      const response = await fetch(`/api/services/${service.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: service.name,
+          description: service.description,
+          duration: service.duration,
+          price: service.price,
+          categoryId: service.category?.id,
+          enabled: !service.enabled,
+        }),
+      });
+
+      if (response.ok) {
+        setMessage({
+          type: "success",
+          text: `Servicio ${
+            !service.enabled ? "activado" : "desactivado"
+          } exitosamente`,
+        });
+        loadServices();
+        setTimeout(() => setMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        setMessage({
+          type: "error",
+          text: error.error || "Error al cambiar el estado del servicio",
+        });
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Error al cambiar el estado del servicio",
+      });
+      setTimeout(() => setMessage(null), 3000);
     }
   };
 
@@ -213,16 +311,13 @@ export default function ServicesPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
       year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
-  const breadcrumbs = [
-    { label: "Administración", href: "/admin" },
-    { label: "Gestión de Servicios", href: "/admin/services" },
-  ];
+  const breadcrumbs = [{ label: "Servicios" }];
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -230,103 +325,114 @@ export default function ServicesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Gestión de Servicios
+            <h1 className="text-3xl font-bold">
+              {isAdmin ? "Gestión de Servicios" : "Servicios Disponibles"}
             </h1>
             <p className="text-muted-foreground">
-              Administra el catálogo de servicios del centro de belleza
+              {isAdmin
+                ? "Administra los servicios ofrecidos en el centro"
+                : "Explora los servicios disponibles"}
             </p>
           </div>
-          {/* Solo ADMIN puede ver el botón */}
-          {session.user.role === "ADMIN" && (
+
+          {isAdmin && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button onClick={handleCreateService}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Agregar Servicio
+                  Nuevo Servicio
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Agregar Nuevo Servicio</DialogTitle>
+                  <DialogTitle>
+                    {isEditMode ? "Editar Servicio" : "Nuevo Servicio"}
+                  </DialogTitle>
                   <DialogDescription>
-                    Complete los datos del nuevo servicio
+                    {isEditMode
+                      ? "Modifica la información del servicio"
+                      : "Crea un nuevo servicio para el centro"}
                   </DialogDescription>
                 </DialogHeader>
+
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Nombre *
-                    </Label>
+                  <div>
+                    <Label htmlFor="name">Nombre del Servicio *</Label>
                     <Input
                       id="name"
-                      className="col-span-3"
-                      placeholder="Ej: Corte de cabello"
                       value={formData.name}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
+                        setFormData({ ...formData, name: e.target.value })
                       }
+                      placeholder="Ej: Manicura francesa..."
                     />
                   </div>
 
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="price" className="text-right">
-                      Precio * (€)
-                    </Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="col-span-3"
-                      placeholder="35.00"
-                      value={formData.price}
+                  <div>
+                    <Label htmlFor="description">Descripción</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          price: e.target.value,
-                        }))
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
                       }
+                      placeholder="Descripción del servicio..."
+                      rows={3}
                     />
                   </div>
 
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="duration" className="text-right">
-                      Duración * (min)
-                    </Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      min="1"
-                      className="col-span-3"
-                      placeholder="45"
-                      value={formData.duration}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          duration: e.target.value,
-                        }))
-                      }
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="duration">Duración (min) *</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        value={formData.duration}
+                        onChange={(e) =>
+                          setFormData({ ...formData, duration: e.target.value })
+                        }
+                        placeholder="60"
+                        min="1"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="price">Precio (€) *</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        value={formData.price}
+                        onChange={(e) =>
+                          setFormData({ ...formData, price: e.target.value })
+                        }
+                        placeholder="25.00"
+                        min="0"
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="text-right">
-                      Categoría
-                    </Label>
+                  <div>
+                    <Label htmlFor="category">Categoría</Label>
                     <Select
                       value={formData.categoryId}
                       onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, categoryId: value }))
+                        setFormData({
+                          ...formData,
+                          categoryId: value === "no-category" ? "" : value,
+                        })
                       }
                     >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Seleccionar categoría..." />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una categoría" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="no-category">
+                          Sin categoría
+                        </SelectItem>
                         {categories.map((category) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -336,25 +442,18 @@ export default function ServicesPage() {
                     </Select>
                   </div>
 
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right">
-                      Descripción
-                    </Label>
-                    <Textarea
-                      id="description"
-                      className="col-span-3"
-                      placeholder="Descripción del servicio..."
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="enabled"
+                      checked={formData.enabled}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, enabled: checked })
                       }
-                      rows={3}
                     />
+                    <Label htmlFor="enabled">Servicio activo</Label>
                   </div>
                 </div>
+
                 <DialogFooter>
                   <Button
                     variant="outline"
@@ -364,7 +463,7 @@ export default function ServicesPage() {
                     Cancelar
                   </Button>
                   <Button
-                    onClick={handleCreateService}
+                    onClick={handleSaveService}
                     disabled={
                       isLoading ||
                       !formData.name ||
@@ -372,7 +471,11 @@ export default function ServicesPage() {
                       !formData.price
                     }
                   >
-                    {isLoading ? "Creando..." : "Crear Servicio"}
+                    {isLoading
+                      ? "Guardando..."
+                      : isEditMode
+                      ? "Actualizar"
+                      : "Crear"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -477,7 +580,9 @@ export default function ServicesPage() {
           <CardHeader>
             <CardTitle>Servicios Registrados</CardTitle>
             <CardDescription>
-              Lista completa de servicios disponibles en el centro
+              {isAdmin
+                ? "Lista completa de servicios disponibles en el centro"
+                : "Servicios disponibles para reservar"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -489,9 +594,12 @@ export default function ServicesPage() {
                   <TableHead>Categoría</TableHead>
                   <TableHead>Duración</TableHead>
                   <TableHead>Costo</TableHead>
-                  <TableHead>Creado por</TableHead>
+                  {isAdmin && <TableHead>Creado por</TableHead>}
                   <TableHead>Estado</TableHead>
-                  <TableHead>Fecha</TableHead>
+                  {isAdmin && <TableHead>Fecha</TableHead>}
+                  {isAdmin && (
+                    <TableHead className="text-right">Acciones</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -512,7 +620,17 @@ export default function ServicesPage() {
                     </TableCell>
                     <TableCell>
                       {service.category ? (
-                        <Badge variant="outline">{service.category.name}</Badge>
+                        <Badge
+                          variant="outline"
+                          style={{
+                            backgroundColor:
+                              service.category.color || "#6B7280",
+                            color: "#fff",
+                            borderColor: service.category.color || "#6B7280",
+                          }}
+                        >
+                          {service.category.name}
+                        </Badge>
                       ) : (
                         <span className="text-muted-foreground">
                           Sin categoría
@@ -528,12 +646,14 @@ export default function ServicesPage() {
                     <TableCell className="font-medium">
                       {formatPrice(service.price)}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-muted-foreground" />
-                        {service.creator.name || "Usuario"}
-                      </div>
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          {service.creator.name || "Usuario"}
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Badge
                         variant={service.enabled ? "default" : "secondary"}
@@ -541,7 +661,34 @@ export default function ServicesPage() {
                         {service.enabled ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatDate(service.createdAt)}</TableCell>
+                    {isAdmin && (
+                      <TableCell>{formatDate(service.createdAt)}</TableCell>
+                    )}
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditService(service)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleService(service)}
+                            className={
+                              service.enabled
+                                ? "text-red-600"
+                                : "text-green-600"
+                            }
+                          >
+                            <Power className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -549,7 +696,9 @@ export default function ServicesPage() {
 
             {services.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No hay servicios registrados
+                {isAdmin
+                  ? "No hay servicios registrados. ¡Crea el primero!"
+                  : "No hay servicios disponibles en este momento."}
               </div>
             )}
           </CardContent>

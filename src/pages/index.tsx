@@ -142,6 +142,7 @@ export default function LandingPage() {
               size="lg"
               variant="outline"
               className="border-2 hover:bg-muted/50 transition-all duration-300 text-lg px-8 py-6"
+              onClick={handleSignIn}
             >
               <Star className="mr-2 h-5 w-5" />
               Ver Servicios

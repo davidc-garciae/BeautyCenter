@@ -92,13 +92,17 @@ export default function CategoriesPage() {
 
   const breadcrumbs = [{ label: "Categorías" }];
 
+  // Verificar si el usuario es admin
+  const isAdmin = session?.user?.role === "ADMIN";
+
   // Manejar redirecciones
   useEffect(() => {
     if (!session) {
       router.push("/");
       return;
     }
-    if (session.user.role !== "ADMIN") {
+    // Permitir acceso a todos los usuarios autenticados (ADMIN, USER, STAFF)
+    if (!["ADMIN", "USER", "STAFF"].includes(session.user.role)) {
       router.push("/admin");
       return;
     }
@@ -106,7 +110,7 @@ export default function CategoriesPage() {
 
   // Cargar datos iniciales
   useEffect(() => {
-    if (session && session.user.role === "ADMIN") {
+    if (session && ["ADMIN", "USER", "STAFF"].includes(session.user.role)) {
       loadCategories();
     }
   }, [session]);
@@ -124,13 +128,14 @@ export default function CategoriesPage() {
     }
   };
 
-  // Verificación de sesión y roles (solo ADMIN)
-  if (!session || session.user.role !== "ADMIN") {
+  // Verificación de sesión y roles (permitir USER, STAFF y ADMIN)
+  if (!session || !["ADMIN", "USER", "STAFF"].includes(session.user.role)) {
     return null;
   }
 
-  // Abrir diálogo para crear categoría
+  // Abrir diálogo para crear categoría (solo ADMIN)
   const handleCreateCategory = () => {
+    if (!isAdmin) return;
     setIsEditMode(false);
     setSelectedCategory(null);
     setFormData({
@@ -142,8 +147,9 @@ export default function CategoriesPage() {
     setMessage(null);
   };
 
-  // Abrir diálogo para editar categoría
+  // Abrir diálogo para editar categoría (solo ADMIN)
   const handleEditCategory = (category: Category) => {
+    if (!isAdmin) return;
     setIsEditMode(true);
     setSelectedCategory(category);
     setFormData({
@@ -155,8 +161,9 @@ export default function CategoriesPage() {
     setMessage(null);
   };
 
-  // Guardar categoría (crear o actualizar)
+  // Guardar categoría (crear o actualizar) (solo ADMIN)
   const handleSaveCategory = async () => {
+    if (!isAdmin) return;
     if (!formData.name) {
       setMessage({ type: "error", text: "El nombre es obligatorio" });
       return;
@@ -207,8 +214,9 @@ export default function CategoriesPage() {
     }
   };
 
-  // Eliminar categoría
+  // Eliminar categoría (solo ADMIN)
   const handleDeleteCategory = async (category: Category) => {
+    if (!isAdmin) return;
     if (category._count.services > 0) {
       setMessage({
         type: "error",
@@ -262,124 +270,133 @@ export default function CategoriesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Gestión de Categorías</h1>
+            <h1 className="text-3xl font-bold">
+              {isAdmin ? "Gestión de Categorías" : "Categorías de Servicios"}
+            </h1>
             <p className="text-muted-foreground">
-              Organiza tus servicios por categorías
+              {isAdmin
+                ? "Organiza tus servicios por categorías"
+                : "Explora las categorías de servicios disponibles"}
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleCreateCategory}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Categoría
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {isEditMode ? "Editar Categoría" : "Nueva Categoría"}
-                </DialogTitle>
-                <DialogDescription>
-                  {isEditMode
-                    ? "Modifica la información de la categoría"
-                    : "Crea una nueva categoría para organizar tus servicios"}
-                </DialogDescription>
-              </DialogHeader>
+          {isAdmin && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={handleCreateCategory}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Categoría
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {isEditMode ? "Editar Categoría" : "Nueva Categoría"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {isEditMode
+                      ? "Modifica la información de la categoría"
+                      : "Crea una nueva categoría para organizar tus servicios"}
+                  </DialogDescription>
+                </DialogHeader>
 
-              <div className="grid gap-4 py-4">
-                <div>
-                  <Label htmlFor="name">Nombre *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="Ej: Cabello, Uñas, Facial..."
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Descripción</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Descripción de la categoría..."
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="color">Color</Label>
-                  <div className="space-y-3">
-                    {/* Color picker manual */}
+                <div className="grid gap-4 py-4">
+                  <div>
+                    <Label htmlFor="name">Nombre *</Label>
                     <Input
-                      id="color"
-                      type="color"
-                      value={formData.color}
+                      id="name"
+                      value={formData.name}
                       onChange={(e) =>
-                        setFormData({ ...formData, color: e.target.value })
+                        setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full h-12"
+                      placeholder="Ej: Cabello, Uñas, Facial..."
                     />
+                  </div>
 
-                    {/* Colores predefinidos */}
-                    <div className="grid grid-cols-6 gap-2">
-                      {PRESET_COLORS.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          className={`w-8 h-8 rounded-md border-2 ${
-                            formData.color === color
-                              ? "border-gray-900 scale-110"
-                              : "border-gray-300"
-                          } transition-all`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => setFormData({ ...formData, color })}
-                          title={color}
-                        />
-                      ))}
+                  <div>
+                    <Label htmlFor="description">Descripción</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Descripción de la categoría..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="color">Color</Label>
+                    <div className="space-y-3">
+                      {/* Color picker manual */}
+                      <Input
+                        id="color"
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) =>
+                          setFormData({ ...formData, color: e.target.value })
+                        }
+                        className="w-full h-12"
+                      />
+
+                      {/* Colores predefinidos */}
+                      <div className="grid grid-cols-6 gap-2">
+                        {PRESET_COLORS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            className={`w-8 h-8 rounded-md border-2 ${
+                              formData.color === color
+                                ? "border-gray-900 scale-110"
+                                : "border-gray-300"
+                            } transition-all`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => setFormData({ ...formData, color })}
+                            title={color}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vista previa */}
+                  <div className="border rounded-md p-3">
+                    <Label className="text-sm text-muted-foreground">
+                      Vista previa:
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div
+                        className="w-4 h-4 rounded"
+                        style={{ backgroundColor: formData.color }}
+                      />
+                      <span className="font-medium">
+                        {formData.name || "Nombre de categoría"}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Vista previa */}
-                <div className="border rounded-md p-3">
-                  <Label className="text-sm text-muted-foreground">
-                    Vista previa:
-                  </Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div
-                      className="w-4 h-4 rounded"
-                      style={{ backgroundColor: formData.color }}
-                    />
-                    <span className="font-medium">
-                      {formData.name || "Nombre de categoría"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button onClick={handleSaveCategory} disabled={isLoading}>
-                  {isLoading
-                    ? "Guardando..."
-                    : isEditMode
-                    ? "Actualizar"
-                    : "Crear"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveCategory} disabled={isLoading}>
+                    {isLoading
+                      ? "Guardando..."
+                      : isEditMode
+                      ? "Actualizar"
+                      : "Crear"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Mensaje de estado */}
@@ -441,7 +458,9 @@ export default function CategoriesPage() {
           <CardHeader>
             <CardTitle>Lista de Categorías</CardTitle>
             <CardDescription>
-              Gestiona las categorías para organizar tus servicios
+              {isAdmin
+                ? "Gestiona las categorías para organizar tus servicios"
+                : "Visualiza las categorías de servicios disponibles"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -452,8 +471,10 @@ export default function CategoriesPage() {
                   <TableHead>Descripción</TableHead>
                   <TableHead>Color</TableHead>
                   <TableHead>Servicios</TableHead>
-                  <TableHead>Creada</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  {isAdmin && <TableHead>Creada</TableHead>}
+                  {isAdmin && (
+                    <TableHead className="text-right">Acciones</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -493,30 +514,34 @@ export default function CategoriesPage() {
                         {category._count.services} servicios
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(category.createdAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditCategory(category)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteCategory(category)}
-                          disabled={category._count.services > 0}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDate(category.createdAt)}
+                        </span>
+                      </TableCell>
+                    )}
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditCategory(category)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteCategory(category)}
+                            disabled={category._count.services > 0}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -524,7 +549,9 @@ export default function CategoriesPage() {
 
             {categories.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No hay categorías registradas. ¡Crea la primera!
+                {isAdmin
+                  ? "No hay categorías registradas. ¡Crea la primera!"
+                  : "No hay categorías disponibles en este momento."}
               </div>
             )}
           </CardContent>
