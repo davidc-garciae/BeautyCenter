@@ -194,16 +194,37 @@ export default function AppointmentsPage() {
     }
   };
 
+  // Verificación de sesión y roles
+  useEffect(() => {
+    if (
+      session &&
+      session.user.role !== "ADMIN" &&
+      session.user.role !== "USER"
+    ) {
+      router.push("/admin");
+    }
+  }, [session, router]);
+
   // Verificación de sesión
   if (!session) {
-    router.push("/");
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground">Acceso no autorizado</p>
+        </div>
+      </div>
+    );
   }
 
-  // Verificación de roles
+  // Verificación de roles (render guard)
   if (session.user.role !== "ADMIN" && session.user.role !== "USER") {
-    router.push("/admin");
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground">Redirigiendo...</p>
+        </div>
+      </div>
+    );
   }
 
   // Handlers
