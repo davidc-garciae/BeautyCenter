@@ -1,4 +1,4 @@
-import { UserRole } from '@prisma/client';
+import { Enum_RoleName } from '@prisma/client';
 import NextAuth, { DefaultSession, DefaultUser } from 'next-auth';
 
 declare module 'next-auth' {
@@ -8,13 +8,11 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
-      role: UserRole;
+      role: Enum_RoleName;
       emailVerified: boolean | null;
-      /** The user's postal address. */
-      address: string;
     } & DefaultSession['user'];
   }
   interface User extends DefaultUser {
-    role: UserRole;
+    role: Enum_RoleName;
   }
 }
