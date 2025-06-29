@@ -1,32 +1,44 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import NextAuth, { type NextAuthOptions } from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import Auth0Provider from 'next-auth/providers/auth0';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import prisma from '@/config/prisma';
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    Auth0Provider({
-      clientId: process.env.AUTH0_CLIENT_ID as string,
-      clientSecret: process.env.AUTH0_CLIENT_SECRET as string,
-      issuer: process.env.AUTH0_ISSUER as string,
-    }),
-  ],
+const options: NextAuthOptions = {
   callbacks: {
-    session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        session.user.role = user.role;
-        session.user.emailVerified = user.emailVerified ? true : false;
-      }
-      return session;
+    async session({ session, user }) {
+      const newSession = (await prisma.session.findFirst({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          user: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })) as any;
+      return {
+        ...session,
+        user: newSession?.user,
+        token: newSession?.sessionToken,
+      };
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  providers: [
+    Auth0Provider({
+      wellKnown: `https://${process.env.AUTH0_DOMAIN}/`,
+      issuer: process.env.AUTH0_DOMAIN,
+      authorization: `https://${process.env.AUTH0_DOMAIN}/authorize?response_type=code&prompt=login`,
+      clientId: process.env.AUTH0_CLIENT_ID || '',
+      clientSecret: process.env.AUTH0_CLIENT_SECRET || '',
+    }),
+  ],
+  adapter: PrismaAdapter(prisma),
+  secret: process.env.AUTH0_CLIENT_SECRET,
 };
 
-const authHandler = NextAuth(authOptions);
+const authHandler = NextAuth(options);
 
 export default authHandler;
-export { authOptions as options };
+export { options };
