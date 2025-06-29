@@ -5,7 +5,8 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...')
 
-  // 1. CREAR USUARIOS DE PRUEBA
+  // 1. CREAR USUARIOS DE PRUEBA (Comentado para evitar conflictos con Auth0)
+  /*
   console.log('👥 Creando usuarios...')
   
   const adminUser = await prisma.user.upsert({
@@ -42,6 +43,23 @@ async function main() {
   })
 
   console.log('✅ Usuarios creados:', { adminUser: adminUser.name, regularUser: regularUser.name, staffUser: staffUser.name })
+  */
+  
+  // Para que el resto del seed funcione, necesitamos un usuario creador.
+  // Crearemos un único usuario de sistema que SÍ se puede usar para asociar datos.
+  // Es importante que el email de este usuario no sea uno que vayas a usar para iniciar sesión.
+  console.log('👤 Creando usuario de sistema para la data inicial...');
+  const systemUser = await prisma.user.upsert({
+    where: { email: 'system@example.com' },
+    update: {},
+    create: {
+      name: 'Usuario del Sistema',
+      email: 'system@example.com',
+      role: Enum_RoleName.ADMIN,
+    },
+  });
+  console.log('✅ Usuario de sistema creado:', systemUser.name);
+
 
   // 2. CREAR CATEGORÍAS DE SERVICIOS
   console.log('📁 Creando categorías de servicios...')
@@ -105,7 +123,7 @@ async function main() {
       price: 35.00,
       color: '#F472B6',
       categoryId: categoryHair.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'service-hair-color',
@@ -115,7 +133,7 @@ async function main() {
       price: 85.00,
       color: '#EC4899',
       categoryId: categoryHair.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'service-hair-highlights',
@@ -125,7 +143,7 @@ async function main() {
       price: 65.00,
       color: '#F9A8D4',
       categoryId: categoryHair.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     // UÑAS
     {
@@ -136,7 +154,7 @@ async function main() {
       price: 25.00,
       color: '#34D399',
       categoryId: categoryNails.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'service-pedicure',
@@ -146,7 +164,7 @@ async function main() {
       price: 30.00,
       color: '#6EE7B7',
       categoryId: categoryNails.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'service-nail-art',
@@ -156,7 +174,7 @@ async function main() {
       price: 45.00,
       color: '#10B981',
       categoryId: categoryNails.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     // FACIAL
     {
@@ -167,7 +185,7 @@ async function main() {
       price: 40.00,
       color: '#60A5FA',
       categoryId: categoryFacial.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'service-facial-anti-aging',
@@ -177,7 +195,7 @@ async function main() {
       price: 75.00,
       color: '#3B82F6',
       categoryId: categoryFacial.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     // MASAJES
     {
@@ -188,7 +206,7 @@ async function main() {
       price: 50.00,
       color: '#A78BFA',
       categoryId: categoryMassage.id,
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
   ]
 
@@ -215,7 +233,7 @@ async function main() {
       address: 'Calle Gran Vía 123, Madrid',
       dateOfBirth: new Date('1990-05-15'),
       notes: 'Prefiere citas por la mañana. Alérgica a ciertos productos químicos.',
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'customer-ana',
@@ -226,7 +244,7 @@ async function main() {
       address: 'Avenida Constitución 45, Barcelona',
       dateOfBirth: new Date('1985-09-22'),
       notes: 'Cliente VIP. Le gusta probar servicios nuevos.',
-      createdBy: staffUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'customer-carmen',
@@ -237,7 +255,7 @@ async function main() {
       address: 'Plaza Mayor 8, Valencia',
       dateOfBirth: new Date('1995-03-10'),
       notes: 'Viene cada 2 semanas para manicura.',
-      createdBy: staffUser.id,
+      createdBy: systemUser.id,
     },
     {
       id: 'customer-lucia',
@@ -248,18 +266,18 @@ async function main() {
       address: 'Calle Sol 67, Sevilla',
       dateOfBirth: new Date('1988-12-03'),
       notes: 'Prefiere coloración sin amoníaco.',
-      createdBy: adminUser.id,
+      createdBy: systemUser.id,
     },
     {
-      id: 'customer-sofia',
-      firstName: 'Sofía',
+      id: 'customer-pablo',
+      firstName: 'Pablo',
       lastName: 'Ruiz González',
-      email: 'sofia.ruiz@email.com',
+      email: 'pablo.ruiz@email.com',
       phone: '+34 666 999 000',
-      address: 'Paseo Marítimo 234, Málaga',
-      dateOfBirth: new Date('1992-07-18'),
-      notes: 'Muy puntual. Le gustan los masajes relajantes.',
-      createdBy: regularUser.id,
+      address: 'Paseo de la Castellana 200, Madrid',
+      dateOfBirth: new Date('2000-01-30'),
+      notes: 'Nuevo cliente. Interesado en masajes.',
+      createdBy: systemUser.id,
     },
   ]
 
@@ -286,8 +304,8 @@ async function main() {
       status: AppointmentStatus.CONFIRMED,
       customerId: 'customer-maria',
       serviceId: 'service-hair-cut',
-      staffId: staffUser.id,
-      userId: staffUser.id,
+      staffId: systemUser.id,
+      userId: systemUser.id,
       price: 35.00,
       notes: 'Primera vez en el centro',
     },
@@ -298,8 +316,8 @@ async function main() {
       status: AppointmentStatus.PENDING,
       customerId: 'customer-ana',
       serviceId: 'service-manicure',
-      staffId: staffUser.id,
-      userId: adminUser.id,
+      staffId: systemUser.id,
+      userId: systemUser.id,
       price: 25.00,
       notes: 'Confirmar 1 hora antes',
     },
@@ -311,8 +329,8 @@ async function main() {
       status: AppointmentStatus.CONFIRMED,
       customerId: 'customer-carmen',
       serviceId: 'service-facial-basic',
-      staffId: staffUser.id,
-      userId: staffUser.id,
+      staffId: systemUser.id,
+      userId: systemUser.id,
       price: 40.00,
     },
     {
@@ -322,8 +340,8 @@ async function main() {
       status: AppointmentStatus.CONFIRMED,
       customerId: 'customer-lucia',
       serviceId: 'service-hair-color',
-      staffId: staffUser.id,
-      userId: adminUser.id,
+      staffId: systemUser.id,
+      userId: systemUser.id,
       price: 85.00,
       notes: 'Coloración sin amoníaco',
     },
@@ -333,10 +351,10 @@ async function main() {
       startTime: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 11, 0), // 11:00 AM ayer
       endTime: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 12, 15),  // 12:15 PM ayer
       status: AppointmentStatus.COMPLETED,
-      customerId: 'customer-sofia',
+      customerId: 'customer-pablo',
       serviceId: 'service-nail-art',
-      staffId: staffUser.id,
-      userId: staffUser.id,
+      staffId: systemUser.id,
+      userId: systemUser.id,
       price: 45.00,
       notes: 'Diseño floral - muy satisfecha',
     },
@@ -347,8 +365,8 @@ async function main() {
       status: AppointmentStatus.COMPLETED,
       customerId: 'customer-maria',
       serviceId: 'service-massage-relaxing',
-      staffId: staffUser.id,
-      userId: regularUser.id,
+      staffId: systemUser.id,
+      userId: systemUser.id,
       price: 50.00,
       notes: 'Excelente servicio, muy relajante',
     },
@@ -360,8 +378,8 @@ async function main() {
       status: AppointmentStatus.CONFIRMED,
       customerId: 'customer-ana',
       serviceId: 'service-facial-anti-aging',
-      staffId: staffUser.id,
-      userId: adminUser.id,
+      staffId: systemUser.id,
+      userId: systemUser.id,
       price: 75.00,
       notes: 'Tratamiento mensual',
     },
@@ -390,12 +408,12 @@ async function main() {
     { dayOfWeek: 6, startTime: '09:00', endTime: '16:00', staffId: null }, // Sábado (horario reducido)
     
     // Horario específico del staff
-    { dayOfWeek: 1, startTime: '08:30', endTime: '17:30', staffId: staffUser.id }, // María - Lunes
-    { dayOfWeek: 2, startTime: '08:30', endTime: '17:30', staffId: staffUser.id }, // María - Martes
-    { dayOfWeek: 3, startTime: '08:30', endTime: '17:30', staffId: staffUser.id }, // María - Miércoles
-    { dayOfWeek: 4, startTime: '08:30', endTime: '17:30', staffId: staffUser.id }, // María - Jueves
-    { dayOfWeek: 5, startTime: '08:30', endTime: '17:30', staffId: staffUser.id }, // María - Viernes
-    { dayOfWeek: 6, startTime: '09:00', endTime: '15:00', staffId: staffUser.id }, // María - Sábado
+    { dayOfWeek: 1, startTime: '08:30', endTime: '17:30', staffId: systemUser.id }, // María - Lunes
+    { dayOfWeek: 2, startTime: '08:30', endTime: '17:30', staffId: systemUser.id }, // María - Martes
+    { dayOfWeek: 3, startTime: '08:30', endTime: '17:30', staffId: systemUser.id }, // María - Miércoles
+    { dayOfWeek: 4, startTime: '08:30', endTime: '17:30', staffId: systemUser.id }, // María - Jueves
+    { dayOfWeek: 5, startTime: '08:30', endTime: '17:30', staffId: systemUser.id }, // María - Viernes
+    { dayOfWeek: 6, startTime: '09:00', endTime: '15:00', staffId: systemUser.id }, // María - Sábado
   ]
 
   for (const hours of workingHours) {
@@ -431,9 +449,7 @@ async function main() {
   console.log('🎉 ¡Seed completado exitosamente!')
   console.log('')
   console.log('👥 USUARIOS CREADOS:')
-  console.log('   📧 admin@centrobelleza.com (ADMIN)')
-  console.log('   📧 user@centrobelleza.com (USER)')
-  console.log('   📧 staff@centrobelleza.com (STAFF)')
+  console.log('   📧 system@example.com (ADMIN)')
   console.log('')
   console.log('📊 DATOS CREADOS:')
   console.log(`   📁 ${4} categorías de servicios`)

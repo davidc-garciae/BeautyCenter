@@ -1,28 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import NextAuth, { NextAuthOptions } from 'next-auth';
+import NextAuth, { type NextAuthOptions } from 'next-auth';
 import Auth0Provider from 'next-auth/providers/auth0';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import prisma from '@/config/prisma';
 
 const options: NextAuthOptions = {
   callbacks: {
-    async session({ session, user }) {
-      const newSession = (await prisma.session.findFirst({
-        where: {
-          userId: user.id,
-        },
-        include: {
-          user: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      })) as any;
-      return {
-        ...session,
-        user: newSession?.user,
-        token: newSession?.sessionToken,
-      };
+    session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
+        session.user.role = user.role;
+        session.user.emailVerified = !!user.emailVerified;
+      }
+      return session;
     },
   },
   providers: [
@@ -35,7 +25,7 @@ const options: NextAuthOptions = {
     }),
   ],
   adapter: PrismaAdapter(prisma),
-  secret: process.env.AUTH0_CLIENT_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const authHandler = NextAuth(options);
