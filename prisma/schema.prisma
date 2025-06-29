@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== MODELOS DE AUTENTICACIÓN (NextAuth.js) =====
+model Account {
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade, name: "AccountToUser")
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, name: "SessionToUser")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String?
+  role          Enum_RoleName @default(USER)
+  email         String?       @unique
+  emailVerified DateTime?     @map("email_verified")
+  image         String?
+  accounts      Account[]     @relation(name: "AccountToUser")
+  sessions      Session[]     @relation(name: "SessionToUser")
+  deleted       Boolean       @default(false)
+  enabled       Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // ===== RELACIONES DEL SISTEMA DE CITAS =====
+  services         Service[]      @relation("ServiceCreator")
+  appointments     Appointment[]  @relation("UserAppointments")
+  staffAppointments Appointment[] @relation("StaffAppointments") // Citas asignadas como staff
+  customers        Customer[]     @relation("UserCustomers") // Clientes creados por el usuario
+  workingHours     WorkingHours[] @relation("StaffWorkingHours")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+enum Enum_RoleName {
+  ADMIN
+  USER
+  STAFF  // Nuevo rol para empleados
+}
+
+// ===== SISTEMA DE AGENDAMIENTO DE CITAS =====
+
+// 1. CLIENTES (separados de usuarios del sistema)
+model Customer {
+  id            String        @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?       @unique
+  phone         String?
+  address       String?
+  dateOfBirth   DateTime?
+  notes         String?       @db.Text
+  enabled       Boolean       @default(true)
+  createdBy     String        // Usuario que creó el cliente
+  creator       User          @relation(fields: [createdBy], references: [id], name: "UserCustomers")
+  appointments  Appointment[] @relation("CustomerAppointments")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+// 2. CATEGORÍAS DE SERVICIOS
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  name        String    // "Cabello", "Uñas", "Facial", etc.
+  description String?
+  color       String?   // Para UI del calendario (hex color)
+  enabled     Boolean   @default(true)
+  services    Service[] @relation("CategoryServices")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 3. SERVICIOS
+model Service {
+  id             String          @id @default(cuid())
+  name           String          // "Manicura Francesa"
+  description    String?         // Descripción detallada
+  duration       Int             // Duración en minutos (ej: 60)
+  price          Decimal         @db.Decimal(10,2) // Precio del servicio
+  color          String?         // Color para calendario (hex color)
+  enabled        Boolean         @default(true)
+  categoryId     String?         // Categoría del servicio
+  category       ServiceCategory? @relation(fields: [categoryId], references: [id], name: "CategoryServices")
+  createdBy      String          // Usuario creador
+  creator        User            @relation(fields: [createdBy], references: [id], name: "ServiceCreator")
+  appointments   Appointment[]   @relation("ServiceAppointments")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+// 4. CITAS (completamente rediseñada)
+model Appointment {
+  id          String            @id @default(cuid())
+  
+  // INFORMACIÓN BÁSICA
+  startTime   DateTime          // Hora de inicio
+  endTime     DateTime          // Hora de fin (calculada desde startTime + service.duration)
+  status      AppointmentStatus @default(PENDING)
+  
+  // RELACIONES
+  customerId  String            // Cliente que reserva
+  customer    Customer          @relation(fields: [customerId], references: [id], name: "CustomerAppointments")
+  
+  serviceId   String            // Servicio reservado
+  service     Service           @relation(fields: [serviceId], references: [id], name: "ServiceAppointments")
+  
+  staffId     String?           // Empleado asignado (opcional)
+  staff       User?             @relation(fields: [staffId], references: [id], name: "StaffAppointments")
+  
+  userId      String            // Usuario que gestionó la cita
+  user        User              @relation(fields: [userId], references: [id], name: "UserAppointments")
+  
+  // INFORMACIÓN ADICIONAL
+  notes       String?           @db.Text // Notas especiales
+  price       Decimal?          @db.Decimal(10,2) // Precio final (puede diferir del servicio)
+  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// 5. ESTADOS DE CITAS
+enum AppointmentStatus {
+  PENDING     // Pendiente de confirmación
+  CONFIRMED   // Confirmada
+  IN_PROGRESS // En progreso
+  COMPLETED   // Completada
+  CANCELLED   // Cancelada
+  NO_SHOW     // Cliente no se presentó
+}
+
+// 6. HORARIOS DE TRABAJO (opcional pero recomendado)
+model WorkingHours {
+  id          String    @id @default(cuid())
+  dayOfWeek   Int       // 0=Domingo, 1=Lunes, etc.
+  startTime   String    // "09:00"
+  endTime     String    // "18:00"
+  staffId     String?   // Horario específico de staff (null = general)
+  staff       User?     @relation(fields: [staffId], references: [id], name: "StaffWorkingHours")
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 7. CONFIGURACIONES DEL SISTEMA
+model SystemConfig {
+  id                    String  @id @default(cuid())
+  appointmentDuration   Int     @default(30) // Duración mínima en minutos
+  advanceBookingDays    Int     @default(30) // Días de anticipación para reservar
+  cancellationHours     Int     @default(24) // Horas mínimas para cancelar
+  workingDaysStart      Int     @default(1)  // Lunes
+  workingDaysEnd        Int     @default(6)  // Sábado
+  businessName          String  @default("Centro de Belleza")
+  businessPhone         String?
+  businessEmail         String?
+  businessAddress       String?
+  updatedAt             DateTime @updatedAt
+}
