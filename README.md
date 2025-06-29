@@ -330,6 +330,24 @@ pnpm prisma studio
 
 ## 📱 Uso del Sistema
 
+### **👥 Usuarios de Prueba**
+
+Para probar la aplicación, puedes usar estas credenciales predefinidas:
+
+#### **🔑 Usuario Administrador**
+
+- **Email:** `admin@admin.com`
+- **Contraseña:** `Admin123`
+- **Permisos:** Acceso completo al sistema (crear, editar, eliminar)
+
+#### **🔑 Usuario Estándar**
+
+- **Email:** `user@user.com`
+- **Contraseña:** `User1234`
+- **Permisos:** Gestión de citas, servicios y categorías (sin administración de usuarios)
+
+---
+
 ### **Administrador (ADMIN)**
 
 - ✅ Acceso completo a todas las funcionalidades
@@ -793,6 +811,24 @@ pnpm prisma studio
 ```
 
 ## 📱 System Usage
+
+### **👥 Test Users**
+
+To test the application, you can use these predefined credentials:
+
+#### **🔑 Administrator User**
+
+- **Email:** `admin@admin.com`
+- **Password:** `Admin123`
+- **Permissions:** Full system access (create, edit, delete)
+
+#### **🔑 Standard User**
+
+- **Email:** `user@user.com`
+- **Password:** `User1234`
+- **Permissions:** Appointment, service, and category management (no user administration)
+
+---
 
 ### **Administrator (ADMIN)**
 

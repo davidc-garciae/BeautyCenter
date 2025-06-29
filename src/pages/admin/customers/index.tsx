@@ -237,11 +237,9 @@ export default function CustomersPage() {
         });
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Error al guardar el cliente" });
       setTimeout(() => setMessage(null), 3000);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -268,7 +266,7 @@ export default function CustomersPage() {
         });
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Error al eliminar el cliente" });
       setTimeout(() => setMessage(null), 3000);
     }

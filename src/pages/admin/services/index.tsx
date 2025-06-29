@@ -250,7 +250,7 @@ export default function ServicesPage() {
         });
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Error al guardar el servicio" });
       setTimeout(() => setMessage(null), 3000);
     } finally {
@@ -295,7 +295,7 @@ export default function ServicesPage() {
         });
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setMessage({
         type: "error",
         text: "Error al cambiar el estado del servicio",

@@ -20,6 +20,7 @@ import {
   Palette,
   Scissors,
   Zap,
+  UserCheck,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -235,6 +236,112 @@ export default function LandingPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Demo Credentials Section */}
+      <section className="py-16 bg-muted/50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <Badge variant="outline" className="mb-4">
+                <Users className="mr-1 h-3 w-3" />
+                Demo
+              </Badge>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Prueba la aplicación
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Explora todas las funcionalidades con estas credenciales de
+                demostración
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Admin User */}
+              <Card className="relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-red-600"></div>
+                <CardHeader>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                      <Users className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">
+                        Usuario Administrador
+                      </CardTitle>
+                      <CardDescription>
+                        Acceso completo al sistema
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Email:</span>
+                      <code className="text-sm bg-background px-2 py-1 rounded">
+                        admin@admin.com
+                      </code>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Contraseña:</span>
+                      <code className="text-sm bg-background px-2 py-1 rounded">
+                        Admin123
+                      </code>
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-xs text-muted-foreground">
+                        ✅ Gestión completa • Crear usuarios • Administrar
+                        sistema
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Standard User */}
+              <Card className="relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
+                <CardHeader>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <UserCheck className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">
+                        Usuario Estándar
+                      </CardTitle>
+                      <CardDescription>
+                        Gestión de citas y servicios
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Email:</span>
+                      <code className="text-sm bg-background px-2 py-1 rounded">
+                        user@user.com
+                      </code>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Contraseña:</span>
+                      <code className="text-sm bg-background px-2 py-1 rounded">
+                        User1234
+                      </code>
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-xs text-muted-foreground">
+                        ✅ Citas • Servicios • Categorías • Clientes
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </section>
 

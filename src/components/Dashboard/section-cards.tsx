@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import {
-  IconTrendingUp,
-  IconUsers,
   IconCalendar,
-  IconTools,
-  IconCurrencyEuro,
+  IconUsers,
+  IconScissors,
+  IconCurrencyDollar,
 } from "@tabler/icons-react";
 import {
   Card,
@@ -56,7 +55,7 @@ export function SectionCards() {
     {
       title: "Ingresos del Mes",
       value: metrics ? formatCurrency(metrics.monthlyRevenue) : "€0,00",
-      icon: IconCurrencyEuro,
+      icon: IconCurrencyDollar,
       description: "Suma de citas completadas",
     },
     {
@@ -74,7 +73,7 @@ export function SectionCards() {
     {
       title: "Servicios Activos",
       value: metrics ? metrics.totalActiveServices : 0,
-      icon: IconTools,
+      icon: IconScissors,
       description: "Catálogo de servicios",
     },
   ];

@@ -38,5 +38,8 @@ const options: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.AUTH0_CLIENT_SECRET,
 };
-export default (req: NextApiRequest, res: NextApiResponse) => NextAuth(req, res, options);
+
+const authHandler = NextAuth(options);
+
+export default authHandler;
 export { options };

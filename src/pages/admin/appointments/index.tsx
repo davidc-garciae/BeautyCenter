@@ -86,6 +86,20 @@ interface FormData {
   quantity: number;
 }
 
+interface Staff {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface Customer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+}
+
 export default function AppointmentsPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -94,8 +108,8 @@ export default function AppointmentsPage() {
   const [selectedService, setSelectedService] = useState<string>("");
   const [services, setServices] = useState<Service[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [staff, setStaff] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{
@@ -218,7 +232,6 @@ export default function AppointmentsPage() {
       });
 
       if (response.ok) {
-        const newAppointment = await response.json();
         setMessage({ type: "success", text: "Cita creada exitosamente" });
         setIsDialogOpen(false);
 
@@ -245,7 +258,7 @@ export default function AppointmentsPage() {
         });
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Error al crear la cita" });
       setTimeout(() => setMessage(null), 3000);
     } finally {

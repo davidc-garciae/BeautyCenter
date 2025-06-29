@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth';
 import { options as authOptions } from '../auth/[...nextauth]';
 import prisma from '@/config/prisma';
-import { startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 export default async function handler(
   req: NextApiRequest,

@@ -206,7 +206,7 @@ export default function CategoriesPage() {
         });
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Error al guardar la categoría" });
       setTimeout(() => setMessage(null), 3000);
     } finally {
@@ -250,7 +250,7 @@ export default function CategoriesPage() {
         });
         setTimeout(() => setMessage(null), 3000);
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Error al eliminar la categoría" });
       setTimeout(() => setMessage(null), 3000);
     }
