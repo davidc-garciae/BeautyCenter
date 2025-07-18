@@ -39,6 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Calendar, User, TrendingUp, Clock } from "lucide-react";
+import { AppointmentStatus } from "@prisma/client";
 
 // Tipos para los datos
 interface Service {
@@ -72,7 +73,7 @@ interface Appointment {
   service: {
     name: string;
   };
-  price?: number;
+  price?: number | string;
   notes?: string;
 }
 
@@ -231,6 +232,40 @@ export default function AppointmentsPage() {
   const handleServiceChange = (serviceId: string) => {
     setSelectedService(serviceId);
     // Las citas se cargarán automáticamente por el useEffect
+  };
+
+  const handleStatusChange = async (
+    appointmentId: string,
+    newStatus: AppointmentStatus
+  ) => {
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        const updatedAppointment = await response.json();
+        // Actualizar el estado local para reflejar el cambio en la UI
+        setAppointments((prev) =>
+          prev.map((apt) =>
+            apt.id === appointmentId ? updatedAppointment : apt
+          )
+        );
+        setMessage({ type: "success", text: "Estado de la cita actualizado." });
+      } else {
+        const errorData = await response.json();
+        setMessage({ type: "error", text: `Error: ${errorData.error}` });
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Error de conexión al actualizar la cita.",
+      });
+    }
+    // Ocultar el mensaje después de 3 segundos
+    setTimeout(() => setMessage(null), 3000);
   };
 
   const handleCreateAppointment = async () => {
@@ -671,14 +706,39 @@ export default function AppointmentsPage() {
                           {appointment.customer.lastName}
                         </TableCell>
                         <TableCell>
-                          {appointment.staff?.name || "Sin asignar"}
+                          {appointment.staff?.name || "N/A"}
                         </TableCell>
                         <TableCell>
-                          {getStatusBadge(appointment.status)}
+                          {session.user.role === "ADMIN" ? (
+                            <Select
+                              value={appointment.status}
+                              onValueChange={(newStatus: AppointmentStatus) =>
+                                handleStatusChange(appointment.id, newStatus)
+                              }
+                            >
+                              <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="Estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.values(AppointmentStatus).map(
+                                  (status) => (
+                                    <SelectItem key={status} value={status}>
+                                      {getStatusBadge(status)}
+                                    </SelectItem>
+                                  )
+                                )}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            getStatusBadge(appointment.status)
+                          )}
                         </TableCell>
-                        <TableCell>1</TableCell>
-                        <TableCell>
-                          {appointment.price ? `€${appointment.price}` : "-"}
+                        <TableCell className="text-right">
+                          {appointment.price
+                            ? `$${parseFloat(String(appointment.price)).toFixed(
+                                2
+                              )}`
+                            : "N/A"}
                         </TableCell>
                       </TableRow>
                     ))}
