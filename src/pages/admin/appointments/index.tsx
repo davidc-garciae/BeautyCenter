@@ -259,6 +259,7 @@ export default function AppointmentsPage() {
         setMessage({ type: "error", text: `Error: ${errorData.error}` });
       }
     } catch (error) {
+      console.error("Error updating appointment status:", error);
       setMessage({
         type: "error",
         text: "Error de conexión al actualizar la cita.",
